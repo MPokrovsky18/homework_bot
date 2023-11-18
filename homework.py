@@ -33,15 +33,14 @@ HOMEWORK_VERDICTS = {
 }
 
 
-def set_logging_settings():
-    """Configures logging settings for the application."""
-    logging.basicConfig(
-        format='%(asctime)s %(levelname)s %(funcName)s %(lineno)d %(message)s',
-        level=logging.DEBUG
-    )
-    stream_handler = logging.StreamHandler(sys.stdout)
-    logger = logging.getLogger(__name__)
-    logger.addHandler(stream_handler)
+formatter = logging.Formatter(
+    '%(asctime)s %(levelname)s %(funcName)s %(lineno)d %(message)s'
+)
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setFormatter(formatter)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logger.addHandler(stream_handler)
 
 
 def check_tokens():
@@ -62,7 +61,7 @@ def check_tokens():
 
     for key, value in required_tokens.items():
         if not value:
-            logging.critical(f'Token not found: {key}')
+            logger.critical(f'Token not found: {key}')
             has_all_tokens = False
 
     if not has_all_tokens:
@@ -74,12 +73,12 @@ def check_tokens():
 def send_message(bot, message):
     """Sends a message using the Telegram bot to the specified chat."""
     try:
-        logging.debug(f'Start trying to send message: {message}')
+        logger.debug(f'Start trying to send message: {message}')
         bot.send_message(TELEGRAM_CHAT_ID, message)
-        logging.debug(f'Successful message sending: {message}')
+        logger.debug(f'Successful message sending: {message}')
         return True
     except TelegramError as error:
-        logging.error(f'Error sending the message: {error}')
+        logger.error(f'Error sending the message: {error}')
         return False
 
 
@@ -98,12 +97,11 @@ def get_api_answer(timestamp):
         'params': {'from_date': timestamp},
     }
 
-    logging.debug(
+    logger.debug(
         'Start an API request: '
-        + ', '.join(
-            '{0}: {1}'.format(key, value)
-            for key, value in request_data.items()
-        )
+        'url: {url}, '
+        'headers: {headers}, '
+        'params: {params}'.format(**request_data)
     )
 
     try:
@@ -111,10 +109,9 @@ def get_api_answer(timestamp):
     except Exception as error:
         raise ConnectionError(
             f'{error}. Request_data: '
-            + ', '.join(
-                '{0}: {1}'.format(key, value)
-                for key, value in request_data.items()
-            )
+            'url: {url}, '
+            'headers: {headers}, '
+            'params: {params}'.format(**request_data)
         )
 
     if response.status_code != HTTPStatus.OK:
@@ -125,12 +122,11 @@ def get_api_answer(timestamp):
             f'text: {response.text}.'
         )
 
-    logging.debug(
+    logger.debug(
         'Successful an API request: '
-        + ', '.join(
-            '{0}: {1}'.format(key, value)
-            for key, value in request_data.items()
-        )
+        'url: {url}, '
+        'headers: {headers}, '
+        'params: {params}'.format(**request_data)
     )
 
     return response.json()
@@ -187,7 +183,6 @@ def parse_status(homework):
 
 def main():
     """The main logic of the bot."""
-    set_logging_settings()
     check_tokens()
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
@@ -211,16 +206,18 @@ def main():
             if messages['new'] != messages['last']:
                 if send_message(bot, messages['new']):
                     messages['last'] = messages['new']
-                    timestamp = response.get('current_date')
+                    timestamp = response.get('current_date', 0)
             else:
-                logging.debug('No new status of homework.')
+                logger.debug(messages['new'])
+        except EmptyResponseFromAPI as error:
+            logger.exception(f'Сбой в работе программы: {error}')
         except Exception as error:
             messages['new'] = f'Сбой в работе программы: {error}'
-            logging.exception(messages['new'])
+            logger.exception(messages['new'])
 
             if messages['new'] != messages['last']:
-                if send_message(bot, messages['new']):
-                    messages['last'] = messages['new']
+                send_message(bot, messages['new'])
+                messages['last'] = messages['new']
         finally:
             time.sleep(RETRY_PERIOD)
 
