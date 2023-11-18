@@ -38,7 +38,7 @@ formatter = logging.Formatter(
 )
 stream_handler = logging.StreamHandler(sys.stdout)
 stream_handler.setFormatter(formatter)
-file_handler = logging.FileHandler(__file__ + '.log')
+file_handler = logging.FileHandler(__file__ + '.log', encoding='utf-8')
 file_handler.setFormatter(formatter)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
