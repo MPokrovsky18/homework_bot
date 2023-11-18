@@ -4,13 +4,7 @@ class EnvironmentVariableError(Exception):
     pass
 
 
-class AuthenticationError(Exception):
+class EmptyResponseFromAPI(Exception):
     """Exception raised for authentication errors."""
-
-    pass
-
-
-class BadRequestError(Exception):
-    """Exception raised for bad requests (HTTP 400)."""
 
     pass
