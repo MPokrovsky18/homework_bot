@@ -38,9 +38,12 @@ formatter = logging.Formatter(
 )
 stream_handler = logging.StreamHandler(sys.stdout)
 stream_handler.setFormatter(formatter)
+file_handler = logging.FileHandler(__file__ + '.log')
+file_handler.setFormatter(formatter)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logger.addHandler(stream_handler)
+logger.addHandler(file_handler)
 
 
 def check_tokens():
@@ -206,7 +209,7 @@ def main():
             if messages['new'] != messages['last']:
                 if send_message(bot, messages['new']):
                     messages['last'] = messages['new']
-                    timestamp = response.get('current_date', 0)
+                    timestamp = response.get('current_date', timestamp)
             else:
                 logger.debug(messages['new'])
         except EmptyResponseFromAPI as error:
